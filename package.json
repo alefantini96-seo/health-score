@@ -1,0 +1,10 @@
+{
+  "name": "health-score",
+  "private": true,
+  "type": "module",
+  "description": "Performance Matrix a ragnetto: si importa la matrice compilata in xlsx, il tool rifà il calcolo e disegna i radar. Nessuna dipendenza: vedi ADR-003.",
+  "scripts": {
+    "test": "node --test",
+    "start": "node scripts/server.mjs"
+  }
+}

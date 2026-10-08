@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# I test prima di ogni commit, non dopo.
+#
+# Su structured-data-analyzer due difetti sono arrivati in produzione in due
+# giorni perche' il controllo esisteva ma girava solo quando qualcuno se ne
+# ricordava. Qui si parte con il gancio gia' nel repository.
+#
+# Si installa una volta per ogni copia:
+#
+#     git config core.hooksPath .githooks
+#
+# Per saltarlo in un caso singolo: `git commit --no-verify`. Se lo si salta
+# spesso, il problema e' il gancio: va sistemato, non aggirato.
+
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Dove Node non c'e' lo si dice e si lascia passare: un gancio che blocca il
+# commit per un eseguibile mancante viene disinstallato il giorno dopo.
+NODE=""
+for candidato in "$HEALTH_NODE" "C:/dev/tools/node/node.exe" node; do
+    [ -n "$candidato" ] || continue
+    if command -v "$candidato" >/dev/null 2>&1; then NODE="$candidato"; break; fi
+done
+
+if [ -z "$NODE" ]; then
+    echo "pre-commit: Node non trovato, test saltati (HEALTH_NODE=/percorso/node per indicarlo)"
+    exit 0
+fi
+
+if ! uscita=$("$NODE" --test 2>&1); then
+    printf 'pre-commit: test FALLITI, commit fermato\n\n%s\n' "$uscita"
+    exit 1
+fi
+echo "pre-commit: test ok"

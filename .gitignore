@@ -1,0 +1,14 @@
+# Matrici compilate e PNG di clienti: non entrano mai nel repository (ADR-004)
+*.xlsx
+*.xls
+*.csv
+export/
+input/
+
+node_modules/
+.vercel/
+.DS_Store
+Thumbs.db
+
+# Pagine di verifica locali, mai pubblicate
+public/_verifica*

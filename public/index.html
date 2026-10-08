@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Health Score</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="testata">
+    <div>
+      <h1>Health Score</h1>
+      <p class="sottotitolo">Performance Matrix: SEO, Editorial, Social, UX, Earned Media</p>
+    </div>
+    <div class="comandi">
+      <label class="pulsante primario">
+        Importa xlsx
+        <input type="file" id="file" accept=".xlsx" hidden>
+      </label>
+      <button type="button" class="pulsante" id="nuova">Nuova dal modello</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="avvisi"></div>
+
+    <section id="vuoto" class="vuoto">
+      <p>Importa una matrice compilata in Excel, oppure parti dal modello standard e assegna i punteggi qui.</p>
+      <p class="tenue">Il file non lascia il browser. L'ultima matrice resta salvata in questo browser finché non ne carichi un'altra.</p>
+    </section>
+
+    <section id="lavoro" hidden>
+      <div class="cliente">
+        <label for="cliente">Cliente</label>
+        <input id="cliente" type="text" placeholder="Nome del cliente">
+      </div>
+      <nav class="schede" id="schede" role="tablist"></nav>
+      <div id="vista"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
