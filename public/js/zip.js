@@ -58,3 +58,73 @@ export function apriZip(buffer) {
     },
   };
 }
+
+// --- Scrittura ------------------------------------------------------------
+//
+// Archivio senza compressione (metodo 0): i file della matrice pesano pochi KB
+// e così non serve un compressore. Il CRC-32 è obbligatorio: Excel lo verifica.
+
+const TABELLA_CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+export function crc32(bytes) {
+  let c = 0xffffffff;
+  for (const b of bytes) c = TABELLA_CRC[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// file: { 'percorso/nome.xml': 'contenuto testo' } → Uint8Array
+export function creaZip(file) {
+  const utf8 = new TextEncoder();
+  const voci = Object.entries(file).map(([nome, testo]) => {
+    const dati = utf8.encode(testo);
+    return { nome: utf8.encode(nome), dati, crc: crc32(dati) };
+  });
+  const lunghezzaLocali = voci.reduce((s, v) => s + 30 + v.nome.length + v.dati.length, 0);
+  const lunghezzaCentrale = voci.reduce((s, v) => s + 46 + v.nome.length, 0);
+  const out = new Uint8Array(lunghezzaLocali + lunghezzaCentrale + 22);
+  const dv = new DataView(out.buffer);
+
+  let p = 0;
+  const offset = [];
+  for (const v of voci) {
+    offset.push(p);
+    dv.setUint32(p, FIRMA_LOCALE, true);
+    dv.setUint16(p + 4, 20, true);
+    dv.setUint16(p + 6, 0x0800, true); // nomi in UTF-8
+    dv.setUint32(p + 14, v.crc, true);
+    dv.setUint32(p + 18, v.dati.length, true);
+    dv.setUint32(p + 22, v.dati.length, true);
+    dv.setUint16(p + 26, v.nome.length, true);
+    out.set(v.nome, p + 30);
+    out.set(v.dati, p + 30 + v.nome.length);
+    p += 30 + v.nome.length + v.dati.length;
+  }
+  const inizioCentrale = p;
+  voci.forEach((v, i) => {
+    dv.setUint32(p, FIRMA_CENTRALE, true);
+    dv.setUint16(p + 4, 20, true);
+    dv.setUint16(p + 6, 20, true);
+    dv.setUint16(p + 8, 0x0800, true);
+    dv.setUint32(p + 16, v.crc, true);
+    dv.setUint32(p + 20, v.dati.length, true);
+    dv.setUint32(p + 24, v.dati.length, true);
+    dv.setUint16(p + 28, v.nome.length, true);
+    dv.setUint32(p + 42, offset[i], true);
+    out.set(v.nome, p + 46);
+    p += 46 + v.nome.length;
+  });
+  dv.setUint32(p, FIRMA_FINE, true);
+  dv.setUint16(p + 8, voci.length, true);
+  dv.setUint16(p + 10, voci.length, true);
+  dv.setUint32(p + 12, p - inizioCentrale, true);
+  dv.setUint32(p + 16, inizioCentrale, true);
+  return out;
+}

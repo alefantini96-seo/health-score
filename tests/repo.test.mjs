@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MODELLO } from '../public/js/modello.js';
 
 const RADICE = join(dirname(fileURLToPath(import.meta.url)), '..');
 const percorso = (...p) => join(RADICE, ...p);
@@ -86,8 +87,9 @@ test('nessun file Excel o CSV nel repository', () => {
   assert.deepEqual(vietati, []);
 });
 
-test('il modello standard non ha punteggi', () => {
-  const testo = readFileSync(percorso('public', 'js', 'modello.js'), 'utf8');
-  assert.doesNotMatch(testo, /"punteggio": (?!null)/);
-  assert.doesNotMatch(testo, /"foglio"/, 'il nome del foglio può essere quello del cliente');
+test('il modello standard non ha punteggi né nomi di foglio', () => {
+  for (const p of MODELLO.pilastri) {
+    assert.equal(p.foglio, undefined, 'il nome del foglio può essere quello del cliente');
+    for (const v of p.voci) assert.equal(v.punteggio, null);
+  }
 });

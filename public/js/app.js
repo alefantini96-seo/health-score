@@ -1,14 +1,19 @@
 // Interfaccia: importa la matrice, la mostra a ragnetto, permette di
-// modificare pesi e punteggi. Tutto resta nel browser (ADR-004).
+// modificare pesi e punteggi, esporta PNG e xlsx. Tutto resta nel browser
+// (ADR-004).
 
-import { leggiXlsx } from './xlsx.js';
+import { leggiXlsx, scriviXlsx } from './xlsx.js';
 import { leggiMatrice, clienteDaNomeFile, PUNTEGGIO_MAX } from './matrice.js';
 import { riepilogo, riepilogoPilastro, percentuale, media } from './calcolo.js';
-import { disegnaRadar, scaricaPng } from './disegno.js';
+import { disegnaRadar, scaricaPng, COLORI } from './disegno.js';
+import { matriceInFogli, nomeFileXlsx } from './esporta.js';
 import { MODELLO } from './modello.js';
 
 const CHIAVE = 'health-score.matrice';
 const $ = (id) => document.getElementById(id);
+
+// Un colore per pilastro, per le etichette del ragnetto delle aree.
+const COLORI_PILASTRO = [COLORI.testo, '#4049FF', '#00A862', '#B45309', '#7C3AED'];
 
 // Tutto il testo che viene dal file passa da qui prima di entrare nel DOM.
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -41,10 +46,30 @@ function imposta(nuovo) {
   disegnaTutto();
 }
 
+function scarica(bytes, nome, tipo) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type: tipo }));
+  a.download = nome;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function scaricaXlsx(matrice, cliente) {
+  scarica(scriviXlsx(matriceInFogli(matrice)), nomeFileXlsx(cliente), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
 // --- Viste -------------------------------------------------------------------
 
-function vociPanoramica() {
-  return riepilogo(stato).map((p) => ({ etichetta: p.nome, quota: p.quota }));
+// Con almeno 3 pilastri il ragnetto della panoramica ha un asse per pilastro.
+// Con meno (il modello SEO + GEO) un radar a 2 assi non dice niente: si
+// mostrano tutte le aree, con l'etichetta colorata per pilastro.
+function radarPanoramica() {
+  const r = riepilogo(stato);
+  if (r.length >= 3) return { voci: r.map((p) => ({ etichetta: p.nome, quota: p.quota })), legenda: [] };
+  return {
+    voci: r.flatMap((p, i) => p.aree.map((a) => ({ etichetta: a.nome, quota: a.quota, colore: COLORI_PILASTRO[i % COLORI_PILASTRO.length] }))),
+    legenda: r.map((p, i) => ({ nome: `${p.nome} ${percentuale(p.quota)}`, colore: COLORI_PILASTRO[i % COLORI_PILASTRO.length] })),
+  };
 }
 
 function disegnaSchede() {
@@ -56,6 +81,7 @@ function disegnaSchede() {
 
 function vistaPanoramica() {
   const r = riepilogo(stato);
+  const perAree = r.length < 3;
   $('vista').innerHTML = `
     <div class="griglia">
       <div class="riquadro">
@@ -72,10 +98,11 @@ function vistaPanoramica() {
             <td class="num">${percentuale(p.quota)}</td><td class="num">${p.compilate} / ${p.voci}</td></tr>`).join('')}
           </tbody>
         </table>
-        <p class="legenda">Il punteggio di un pilastro è la media semplice delle sue aree. Un pilastro senza punteggi è «n.d.» e sul ragnetto va al centro.</p>
+        <p class="legenda">Il punteggio di un pilastro è la media semplice delle sue aree. ${
+          perAree ? 'Il ragnetto mostra tutte le aree, colorate per pilastro.' : 'Un pilastro senza punteggi è «n.d.» e sul ragnetto va al centro.'}</p>
       </div>
     </div>`;
-  disegnaRadar($('radar'), { voci: vociPanoramica() });
+  disegnaRadar($('radar'), radarPanoramica());
 }
 
 function tabellaAree(p) {
@@ -126,7 +153,7 @@ function tabellaVoci(indice) {
         <thead><tr>${colCanale ? '<th>Canale</th>' : ''}<th>Check</th><th class="num">Peso</th><th class="num">Punteggio</th><th class="num">Risultato</th></tr></thead>
         <tbody>${righe}</tbody>
       </table>
-      <p class="legenda">Punteggio da 1 (molto grave, eseguito male) a 5 (eseguito da best practice). 0 se la variabile non è presente o verificabile: conta come zero. «–» vuol dire non compilato: la voce non entra nel calcolo.</p>
+      <p class="legenda">Punteggio da 1 (molto grave, eseguito male) a 5 (eseguito da best practice). 0 se l'elemento manca: conta come zero. «–» se il check non si applica al sito (es. hreflang su un sito in una lingua): la voce non entra nel calcolo.</p>
     </div>`;
 }
 
@@ -174,20 +201,20 @@ function disegnaTutto() {
 function esportaPng(chi) {
   const canvas = document.createElement('canvas');
   const cliente = stato.cliente?.trim();
-  let voci, titolo, sottotitolo, nome;
+  let radar, titolo, sottotitolo, nome;
   if (chi === 'panoramica') {
-    voci = vociPanoramica();
+    radar = radarPanoramica();
     titolo = cliente ? `${cliente} · Performance Matrix` : 'Performance Matrix';
-    sottotitolo = `Media dei pilastri ${percentuale(media(voci.map((v) => v.quota)))}`;
+    sottotitolo = `Media dei pilastri ${percentuale(media(riepilogo(stato).map((p) => p.quota)))}`;
     nome = 'Performance Matrix';
   } else {
     const p = riepilogoPilastro(stato.pilastri[Number(chi)]);
-    voci = p.aree.map((a) => ({ etichetta: a.nome, quota: a.quota }));
+    radar = { voci: p.aree.map((a) => ({ etichetta: a.nome, quota: a.quota })) };
     titolo = cliente ? `${cliente} · ${p.nome}` : p.nome;
     sottotitolo = `Media ${p.nome} ${percentuale(p.quota)}`;
     nome = `${p.nome} Performance Matrix`;
   }
-  disegnaRadar(canvas, { voci, titolo, sottotitolo, larghezza: 720, altezza: 600, scala: 2 });
+  disegnaRadar(canvas, { ...radar, titolo, sottotitolo, larghezza: 760, altezza: 640, scala: 2 });
   scaricaPng(canvas, `${nome}${cliente ? ` - ${cliente}` : ''}.png`);
 }
 
@@ -215,6 +242,10 @@ $('nuova').addEventListener('click', () => {
   mostraMessaggi(null);
   imposta({ cliente: '', pilastri: structuredClone(MODELLO.pilastri) });
 });
+
+$('modello-xlsx').addEventListener('click', () => scaricaXlsx(MODELLO, ''));
+
+$('esporta-xlsx').addEventListener('click', () => scaricaXlsx(stato, stato.cliente));
 
 $('cliente').addEventListener('input', (e) => { stato.cliente = e.target.value; salva(); });
 

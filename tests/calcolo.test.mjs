@@ -46,14 +46,28 @@ test('media e percentuale', () => {
   assert.equal(percentuale(null), 'n.d.');
 });
 
-test('il modello standard ha i 5 pilastri, pesi numerici e nessun punteggio', () => {
-  assert.deepEqual(MODELLO.pilastri.map((p) => p.nome), ['SEO', 'Editorial', 'Social', 'UX', 'Earned Media']);
+test('il modello standard ha SEO e GEO, pesi 1-10 e nessun punteggio', () => {
+  assert.deepEqual(MODELLO.pilastri.map((p) => p.nome), ['SEO', 'GEO']);
   for (const p of MODELLO.pilastri) {
     assert.ok(p.voci.length > 0, p.nome);
     for (const voce of p.voci) {
       assert.equal(voce.punteggio, null);
-      assert.ok(Number.isFinite(voce.peso) && voce.peso > 0, `${p.nome}: ${voce.check}`);
+      assert.ok(Number.isInteger(voce.peso) && voce.peso >= 1 && voce.peso <= 10, `${p.nome}: ${voce.check}`);
+      assert.ok(voce.area && voce.check && voce.note, `${p.nome}: voce incompleta`);
     }
   }
   assert.ok(riepilogo(MODELLO).every((p) => p.quota === null));
+});
+
+test('ogni pilastro del modello ha almeno 3 aree: serve al ragnetto', () => {
+  for (const p of riepilogo(MODELLO)) assert.ok(p.aree.length >= 3, p.nome);
+});
+
+test('nessun check chiede FAQPage, HowTo o SearchAction per i rich result', () => {
+  // Non producono più risultati avanzati: se un check li nomina, dice che non li danno.
+  for (const p of MODELLO.pilastri) {
+    for (const v of p.voci) {
+      if (/FAQ|HowTo|SearchAction/.test(v.note)) assert.match(v.note, /non danno/, `${p.nome}: ${v.check}`);
+    }
+  }
 });

@@ -87,4 +87,6 @@ test('nome del cliente dal nome del file', () => {
   assert.equal(clienteDaNomeFile('Perf matrix_Acme.xlsx'), 'Acme');
   assert.equal(clienteDaNomeFile('Performance Matrix - Acme Spa.xlsx'), 'Acme Spa');
   assert.equal(clienteDaNomeFile('acme.xlsx'), 'acme');
+  assert.equal(clienteDaNomeFile('Perf matrix_modello.xlsx'), '');
+  assert.equal(clienteDaNomeFile('Perf matrix_modello (1).xlsx'), '');
 });

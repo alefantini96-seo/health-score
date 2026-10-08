@@ -7,7 +7,7 @@
 
 ## Contesto
 
-Esiste una versione precedente del ragnetto, un artifact di claude.ai, che si alimentava con export di Screaming Frog e Semrush. La Performance Matrix in uso nelle gare e negli audit è invece un giudizio esperto: l'expert reviewer assegna a ogni check un punteggio da 0 a 5.
+Esiste una versione precedente del ragnetto, un artifact di claude.ai, che si alimentava con export di Screaming Frog e Semrush. La Performance Matrix è invece un giudizio esperto: l'expert reviewer assegna a ogni check un punteggio da 0 a 5.
 
 ## Problema
 

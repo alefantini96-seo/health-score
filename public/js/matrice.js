@@ -104,11 +104,13 @@ export function leggiMatrice(fogli) {
   return { pilastri, avvisi, ignorati };
 }
 
-// «Perf matrix_Acme.xlsx» → «Acme»
+// «Perf matrix_Acme.xlsx» → «Acme». Il modello vuoto scaricato dal tool
+// («Perf matrix_modello.xlsx») non ha cliente.
 export function clienteDaNomeFile(nome) {
-  return nome
+  const cliente = nome
     .replace(/\.xlsx$/i, '')
     .replace(/^perf(ormance)?[\s_-]*matrix[\s_-]*/i, '')
     .replace(/[_]+/g, ' ')
     .trim();
+  return /^modello( \(\d+\))?$/i.test(cliente) ? '' : cliente;
 }

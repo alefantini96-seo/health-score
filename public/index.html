@@ -10,7 +10,7 @@
   <header class="testata">
     <div>
       <h1>Health Score</h1>
-      <p class="sottotitolo">Performance Matrix: SEO, Editorial, Social, UX, Earned Media</p>
+      <p class="sottotitolo">Performance Matrix SEO e GEO</p>
     </div>
     <div class="comandi">
       <label class="pulsante primario">
@@ -18,6 +18,7 @@
         <input type="file" id="file" accept=".xlsx" hidden>
       </label>
       <button type="button" class="pulsante" id="nuova">Nuova dal modello</button>
+      <button type="button" class="pulsante" id="modello-xlsx">Scarica modello xlsx</button>
     </div>
   </header>
 
@@ -25,7 +26,7 @@
     <div id="avvisi"></div>
 
     <section id="vuoto" class="vuoto">
-      <p>Importa una matrice compilata in Excel, oppure parti dal modello standard e assegna i punteggi qui.</p>
+      <p>Scarica il modello xlsx e compilalo in Excel, poi importalo. Oppure parti dal modello e assegna i punteggi qui.</p>
       <p class="tenue">Il file non lascia il browser. L'ultima matrice resta salvata in questo browser finché non ne carichi un'altra.</p>
     </section>
 
@@ -33,6 +34,7 @@
       <div class="cliente">
         <label for="cliente">Cliente</label>
         <input id="cliente" type="text" placeholder="Nome del cliente">
+        <button type="button" class="pulsante piccolo" id="esporta-xlsx">Esporta xlsx</button>
       </div>
       <nav class="schede" id="schede" role="tablist"></nav>
       <div id="vista"></div>

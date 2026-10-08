@@ -24,8 +24,9 @@ function righeTesto(ctx, testo, larghezza) {
   return righe;
 }
 
-// voci: [{ etichetta, quota }] — quota 0-1 o null.
-export function disegnaRadar(canvas, { voci, titolo = '', sottotitolo = '', larghezza = 560, altezza = 480, scala = window.devicePixelRatio || 1 }) {
+// voci: [{ etichetta, quota, colore? }], quota 0-1 o null. colore tinge etichetta
+// e punto (es. il pilastro di appartenenza). legenda: [{ nome, colore }].
+export function disegnaRadar(canvas, { voci, titolo = '', sottotitolo = '', legenda = [], larghezza = 560, altezza = 480, scala = window.devicePixelRatio || 1 }) {
   canvas.width = Math.round(larghezza * scala);
   canvas.height = Math.round(altezza * scala);
   canvas.style.width = `${larghezza}px`;
@@ -60,8 +61,11 @@ export function disegnaRadar(canvas, { voci, titolo = '', sottotitolo = '', larg
     return;
   }
 
-  const margine = 96;
-  const centro = { cx: larghezza / 2, cy: alto + (altezza - alto) / 2, raggio: Math.min(larghezza / 2 - margine - 20, (altezza - alto) / 2 - 44) };
+  const basso = altezza - (legenda.length ? 30 : 0);
+  // Spazio per le etichette: ai lati fino a ~130 px di testo, sopra e sotto
+  // fino a tre righe di nome più la quota.
+  const margine = 110;
+  const centro = { cx: larghezza / 2, cy: alto + (basso - alto) / 2, raggio: Math.min(larghezza / 2 - margine - 20, (basso - alto) / 2 - 64) };
 
   // Griglia: anelli poligonali e assi.
   ctx.strokeStyle = COLORI.griglia;
@@ -95,8 +99,8 @@ export function disegnaRadar(canvas, { voci, titolo = '', sottotitolo = '', larg
   ctx.strokeStyle = COLORI.serie;
   ctx.lineWidth = 2.5;
   ctx.stroke();
-  ctx.fillStyle = COLORI.serie;
-  for (const [x, y] of pts) {
+  for (const [i, [x, y]] of pts.entries()) {
+    ctx.fillStyle = voci[i].colore ?? COLORI.serie;
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
@@ -109,8 +113,10 @@ export function disegnaRadar(canvas, { voci, titolo = '', sottotitolo = '', larg
     const y = centro.cy + Math.sin(a) * (centro.raggio + 14);
     const { orizzontale, verticale } = allineamento(i, n);
     ctx.font = `bold 13px ${FONT}`;
-    const righe = righeTesto(ctx, voci[i].etichetta, margine + 30);
-    const blocco = [...righe.map((t) => ({ t, f: `bold 13px ${FONT}`, c: COLORI.testo })), { t: percentuale(voci[i].quota), f: `13px ${FONT}`, c: COLORI.tenue }];
+    // L'etichetta va a capo prima del bordo del canvas, mai oltre.
+    const spazio = orizzontale === 'left' ? larghezza - x - 8 : orizzontale === 'right' ? x - 8 : 2 * Math.min(x, larghezza - x) - 16;
+    const righe = righeTesto(ctx, voci[i].etichetta, Math.min(150, spazio));
+    const blocco = [...righe.map((t) => ({ t, f: `bold 13px ${FONT}`, c: voci[i].colore ?? COLORI.testo })), { t: percentuale(voci[i].quota), f: `13px ${FONT}`, c: COLORI.tenue }];
     const h = 16 * blocco.length;
     let y0 = verticale === 'top' ? y : verticale === 'bottom' ? y - h : y - h / 2;
     ctx.textAlign = orizzontale;
@@ -121,6 +127,21 @@ export function disegnaRadar(canvas, { voci, titolo = '', sottotitolo = '', larg
       ctx.fillText(r.t, x, y0);
       y0 += 16;
     }
+  }
+
+  // Legenda in basso a sinistra.
+  let lx = 20;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = `13px ${FONT}`;
+  for (const l of legenda) {
+    ctx.fillStyle = l.colore;
+    ctx.beginPath();
+    ctx.arc(lx + 5, altezza - 18, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORI.testo;
+    ctx.fillText(l.nome, lx + 16, altezza - 18);
+    lx += 16 + ctx.measureText(l.nome).width + 24;
   }
 }
 

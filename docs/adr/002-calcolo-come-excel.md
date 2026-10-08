@@ -28,8 +28,8 @@ Il tool rifà il calcolo (`public/js/calcolo.js`):
 
 - quota area = Σ peso×punteggio / Σ peso×5, sulle voci compilate;
 - quota pilastro = media semplice delle quote d'area (non pesata), su **tutte** le aree compilate;
-- punteggio 0 conta come zero, come dice l'istruzione del modello («non presente o verificabile»);
-- punteggio vuoto = non compilato: la voce non entra né nel risultato né nel massimo;
+- punteggio 0 conta come zero: l'elemento manca;
+- punteggio vuoto («–») = check non applicabile al sito o non compilato: la voce non entra né nel risultato né nel massimo. L'Excel delle gare chiedeva 0 anche per «non verificabile»; dal modello SEO e GEO (ADR-005) un check che non si applica, come hreflang su un sito monolingua, resta vuoto e non penalizza;
 - pilastro senza punteggi = «n.d.», non un numero scritto a mano.
 
 Le aree si raggruppano ignorando maiuscole e spazi («SEO compliance» e «SEO Compliance» sono la stessa area, come nel SUMIF).

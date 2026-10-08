@@ -5,7 +5,7 @@
 // con espressioni regolari, così lo stesso codice gira nel browser e in Node
 // senza DOMParser (ADR-003).
 
-import { apriZip } from './zip.js';
+import { apriZip, creaZip } from './zip.js';
 
 const ENTITA = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 
@@ -107,4 +107,90 @@ export async function leggiXlsx(buffer) {
     fogli.push({ nome: a.name, righe: leggiFoglio(xml, condivise) });
   }
   return fogli;
+}
+
+// --- Scrittura ------------------------------------------------------------
+//
+// Il minimo che Excel apre senza riparazioni: content types, relazioni,
+// workbook, stili, un foglio per pilastro. Stringhe inline (niente
+// sharedStrings), formule senza valore in cache: Excel le ricalcola
+// all'apertura (fullCalcOnLoad).
+//
+// fogli: [{ nome, colonne: [larghezza, ...], righe: [[cella, ...], ...], convalida? }]
+// cella: stringa | numero | null | { v, f, s }   (f = formula, s = stile)
+// convalida: { rif: 'E4:E40', min: 0, max: 5 }   intero fra min e max, vuoto ammesso
+
+export const STILE = { normale: 0, titolo: 1, intestazione: 2, testo: 3 };
+
+const xmlEsc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+export function lettereDaColonna(col) {
+  let s = '';
+  for (let n = col + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
+  return s;
+}
+
+// Excel rifiuta nomi di foglio oltre 31 caratteri o con []:*?/\
+export function nomeFoglio(nome) {
+  return String(nome).replace(/[[\]:*?/\\]/g, ' ').trim().slice(0, 31) || 'Foglio';
+}
+
+function cellaXml(cella, rif) {
+  if (cella === null || cella === undefined || cella === '') return '';
+  const c = typeof cella === 'object' ? cella : { v: cella };
+  const s = c.s ? ` s="${c.s}"` : '';
+  if (c.f) return `<c r="${rif}"${s}><f>${xmlEsc(c.f)}</f></c>`;
+  if (typeof c.v === 'number') return `<c r="${rif}"${s}><v>${c.v}</v></c>`;
+  if (c.v === null || c.v === undefined || c.v === '') return s ? `<c r="${rif}"${s}/>` : '';
+  return `<c r="${rif}"${s} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(c.v)}</t></is></c>`;
+}
+
+function foglioXml(f) {
+  const colonne = f.colonne?.length
+    ? `<cols>${f.colonne.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`
+    : '';
+  const righe = f.righe.map((riga, r) =>
+    `<row r="${r + 1}">${(riga ?? []).map((c, i) => cellaXml(c, `${lettereDaColonna(i)}${r + 1}`)).join('')}</row>`).join('');
+  const convalida = f.convalida
+    ? `<dataValidations count="1"><dataValidation type="whole" allowBlank="1" showErrorMessage="1" errorTitle="Punteggio" error="Intero da ${f.convalida.min} a ${f.convalida.max}, oppure vuoto se il check non si applica." sqref="${f.convalida.rif}"><formula1>${f.convalida.min}</formula1><formula2>${f.convalida.max}</formula2></dataValidation></dataValidations>`
+    : '';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${colonne}<sheetData>${righe}</sheetData>${convalida}</worksheet>`;
+}
+
+const STILI = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="3"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1B1D24"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="4">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+
+export function scriviXlsx(fogli) {
+  const T = 'application/vnd.openxmlformats-officedocument.spreadsheetml';
+  const R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const file = {
+    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="${T}.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="${T}.styles+xml"/>${
+      fogli.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${T}.worksheet+xml"/>`).join('')}</Types>`,
+    '_rels/.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${R}"><sheets>${
+      fogli.map((f, i) => `<sheet name="${xmlEsc(nomeFoglio(f.nome))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`,
+    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${
+      fogli.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${R}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')
+    }<Relationship Id="rId${fogli.length + 1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`,
+    'xl/styles.xml': STILI,
+  };
+  fogli.forEach((f, i) => { file[`xl/worksheets/sheet${i + 1}.xml`] = foglioXml(f); });
+  return creaZip(file);
 }

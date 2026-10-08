@@ -24,9 +24,9 @@ const modello = {
   })),
 };
 
-const testa = `// Il modello standard della matrice: pilastri, aree, check, note e pesi.
+const testa = `// Il modello standard della matrice (ADR-005): pilastri, aree, check, note e pesi.
 // È la checklist di metodo, senza punteggi e senza dati di clienti (ADR-004).
-// Si rigenera da un xlsx compilato con scripts/modello-da-xlsx.mjs.
+// Generato da scripts/modello-da-xlsx.mjs: si può modificare a mano.
 
 export const MODELLO = `;
 const destinazione = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'js', 'modello.js');

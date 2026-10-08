@@ -1,7 +1,7 @@
 # ADR-004: Nessun dato cliente nel repository, la matrice resta nel browser
 
 **Data:** 2026-10-08
-**Stato:** Approvato
+**Stato:** Approvato. La conseguenza sull'export è aggiornata da ADR-006.
 
 ---
 
@@ -29,7 +29,7 @@ Che cosa può stare nel repository e dove vive la matrice mentre si lavora?
 
 ## Conseguenze
 
-- Le modifiche fatte nel tool non tornano nell'xlsx. Per conservarle oggi si esporta il PNG e si riportano i punteggi nell'Excel (vedi `docs/aperto.md`).
+- Le modifiche fatte nel tool si conservano esportando l'xlsx (ADR-006) e salvandolo nella cartella del cliente. Il file esportato non passa da nessun server.
 
 ## Come si ribalta
 
