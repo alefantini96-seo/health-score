@@ -1,7 +1,7 @@
 # ADR-005: Il modello standard è solo SEO e GEO, con i check del 2026
 
 **Data:** 2026-10-08
-**Stato:** Approvato
+**Stato:** Superato da ADR-007 per pilastri e aree (un pilastro, sette aree). I criteri per i check restano validi.
 
 ---
 

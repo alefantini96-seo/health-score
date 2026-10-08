@@ -72,9 +72,16 @@ function radarPanoramica() {
   };
 }
 
+// Con un solo pilastro (il modello SEO & GEO) la panoramica ripeterebbe il
+// ragnetto del pilastro: non c'è, si apre direttamente il pilastro.
+const conPanoramica = () => stato.pilastri.length > 1;
+
 function disegnaSchede() {
   const r = riepilogo(stato);
-  const voci = [{ id: 'panoramica', nome: 'Panoramica', quota: media(r.map((p) => p.quota)) }, ...r.map((p, i) => ({ id: String(i), nome: p.nome, quota: p.quota }))];
+  const voci = [
+    ...(conPanoramica() ? [{ id: 'panoramica', nome: 'Panoramica', quota: media(r.map((p) => p.quota)) }] : []),
+    ...r.map((p, i) => ({ id: String(i), nome: p.nome, quota: p.quota })),
+  ];
   $('schede').innerHTML = voci.map((v) =>
     `<button type="button" role="tab" data-scheda="${v.id}" aria-selected="${v.id === scheda}">${esc(v.nome)}<span class="quota">${percentuale(v.quota)}</span></button>`).join('');
 }
@@ -191,6 +198,7 @@ function disegnaTutto() {
   $('lavoro').hidden = !aperta;
   if (!aperta) return;
   $('cliente').value = stato.cliente ?? '';
+  if (scheda === 'panoramica' && !conPanoramica()) scheda = '0';
   disegnaSchede();
   if (scheda === 'panoramica') vistaPanoramica();
   else vistaPilastro(Number(scheda));

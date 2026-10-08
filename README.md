@@ -4,7 +4,7 @@ La Performance Matrix SEO e GEO a ragnetto. Si compila la matrice (in Excel o di
 
 Niente export di Screaming Frog o Semrush, niente API: la matrice è un giudizio esperto e si compila a mano (ADR-001).
 
-**Stato all'8 ottobre 2026:** modello SEO e GEO con i check del 2026 (ADR-005), import ed export xlsx (ADR-006), radar, modifica dei punteggi, PNG. 46 test. L'xlsx esportato è verificato in Excel desktop. Da fare: la pubblicazione su Vercel e la prima matrice su un cliente vero (`docs/aperto.md`).
+**Stato all'8 ottobre 2026:** modello SEO & GEO a sette aree con i check del 2026 (ADR-005, ADR-007), import ed export xlsx (ADR-006), radar, modifica dei punteggi, PNG. 46 test. L'xlsx esportato è verificato in Excel desktop. Da fare: la pubblicazione su Vercel e la prima matrice su un cliente vero (`docs/aperto.md`).
 
 ---
 
@@ -18,6 +18,7 @@ Niente export di Screaming Frog o Semrush, niente API: la matrice è un giudizio
 | 4 | Nessun dato cliente nel repository, la matrice resta nel browser | [004](docs/adr/004-niente-dati-cliente-nel-repository.md) |
 | 5 | Il modello è solo SEO e GEO, con aree allineate al template di audit | [005](docs/adr/005-modello-seo-e-geo.md) |
 | 6 | Il tool scrive l'xlsx: modello vuoto ed export della matrice | [006](docs/adr/006-il-tool-scrive-l-xlsx.md) |
+| 7 | Un solo ragnetto a sette aree: Crawling, Architettura, CWV, Dati strutturati, Semantica & Contenuto, Accessibilità AI, Autorevolezza e brand | [007](docs/adr/007-un-ragnetto-a-sette-aree.md) |
 
 Prima di cambiare una di queste cose, leggere l'ADR: dice anche come si ribalta.
 
@@ -25,20 +26,27 @@ Prima di cambiare una di queste cose, leggere l'ADR: dice anche come si ribalta.
 
 1. **Scarica modello xlsx**, compilalo in Excel (Punteggio 0-5, vuoto se il check non si applica) e salvalo come `Perf matrix_<cliente>.xlsx`. Poi **Importa xlsx**.
    In alternativa **Nuova dal modello** e assegni i punteggi direttamente nel tool.
-2. La **Panoramica** mostra il ragnetto di tutte le aree, colorate per pilastro, e la media di SEO e GEO.
-3. Le schede **SEO** e **GEO** mostrano il ragnetto delle aree, la tabella ottenuto/max e i check con la guida «Come si valuta». Peso e punteggio si modificano lì: grafico e medie si aggiornano subito.
+2. La scheda **SEO & GEO** mostra il ragnetto a sette assi, la media, la tabella ottenuto/max per area e i check con la guida «Come si valuta». Peso e punteggio si modificano lì: grafico e medie si aggiornano subito.
+3. Se si importa una matrice con più pilastri (es. le vecchie matrici delle gare) compare anche la **Panoramica**.
 4. **Scarica PNG** su ogni grafico (1520 × 1280 px, nome del cliente e media nel titolo). **Esporta xlsx** salva la matrice con i punteggi, da archiviare nella cartella del cliente.
 
 L'ultima matrice resta salvata in questo browser. L'archivio vero è l'xlsx.
 
 ## Il modello
 
-| Pilastro | Aree |
-|---|---|
-| SEO | Crawling e indicizzazione · Rendering e mobile · Architettura e linking interno · Performance e Core Web Vitals · Tag e dati strutturati · Contenuti e on-page · Autorevolezza off-site |
-| GEO | Accesso dei crawler AI · Citabilità dei contenuti · Autorevolezza e fonti · Entità e brand · Visibilità negli LLM |
+Un pilastro, SEO & GEO, con sette aree: sono i sette assi del ragnetto.
 
-Check, note e pesi sono in `public/js/modello.js`. I criteri con cui sono scelti sono in ADR-005.
+| Area | Cosa copre | Check |
+|---|---|---|
+| Crawling | accesso dei bot, indice, rendering per Google, codici di risposta, canonical, sitemap, parità mobile, hreflang | 8 |
+| Architettura | pagine per le keyword strategiche, profondità, linking interno, faccette, URL | 5 |
+| Core Web Vitals | LCP, INP, CLS di campo, TTFB, immagini | 5 |
+| Dati strutturati | tipi per template, validità, coerenza con il visibile, Organization ed entità | 4 |
+| Semantica & Contenuto | title, heading, cannibalizzazioni, thin, definizione in apertura, struttura citabile, freschezza, spam policy | 8 |
+| Accessibilità AI | bot AI di ricerca, contenuto senza JavaScript, CDN e firewall, Bing | 4 |
+| Autorevolezza e brand | domini referenti, menzioni, firma e fiducia, entità, visibilità negli LLM, correttezza delle risposte | 6 |
+
+Check, note e pesi sono in `public/js/modello.js`. I criteri con cui sono scelti sono in ADR-005, le aree in ADR-007.
 
 ## Il formato del file
 
@@ -72,7 +80,7 @@ public/
   js/esporta.js    dalla matrice ai fogli xlsx
   js/radar.js      geometria del ragnetto (pura)
   js/disegno.js    canvas e PNG
-  js/modello.js    checklist SEO e GEO senza punteggi
+  js/modello.js    checklist SEO & GEO senza punteggi
   js/app.js        interfaccia
 scripts/server.mjs          server locale
 scripts/modello-da-xlsx.mjs rigenera modello.js da un xlsx

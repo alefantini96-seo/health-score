@@ -46,8 +46,8 @@ test('media e percentuale', () => {
   assert.equal(percentuale(null), 'n.d.');
 });
 
-test('il modello standard ha SEO e GEO, pesi 1-10 e nessun punteggio', () => {
-  assert.deepEqual(MODELLO.pilastri.map((p) => p.nome), ['SEO', 'GEO']);
+test('il modello standard ha un pilastro SEO & GEO, pesi 1-10 e nessun punteggio', () => {
+  assert.deepEqual(MODELLO.pilastri.map((p) => p.nome), ['SEO & GEO']);
   for (const p of MODELLO.pilastri) {
     assert.ok(p.voci.length > 0, p.nome);
     for (const voce of p.voci) {
@@ -59,8 +59,11 @@ test('il modello standard ha SEO e GEO, pesi 1-10 e nessun punteggio', () => {
   assert.ok(riepilogo(MODELLO).every((p) => p.quota === null));
 });
 
-test('ogni pilastro del modello ha almeno 3 aree: serve al ragnetto', () => {
-  for (const p of riepilogo(MODELLO)) assert.ok(p.aree.length >= 3, p.nome);
+test('il ragnetto del modello ha le sette aree decise, in quest\'ordine (ADR-007)', () => {
+  const [p] = riepilogo(MODELLO);
+  assert.deepEqual(p.aree.map((a) => a.nome), [
+    'Crawling', 'Architettura', 'Core Web Vitals', 'Dati strutturati', 'Semantica & Contenuto', 'Accessibilità AI', 'Autorevolezza e brand',
+  ]);
 });
 
 test('nessun check chiede FAQPage, HowTo o SearchAction per i rich result', () => {
